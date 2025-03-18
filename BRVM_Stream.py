@@ -1,7 +1,6 @@
 import streamlit as st,pandas as pd,numpy as np,os,random as rd,datetime as dt,plotly.express as px
 from streamlit.components.v1 import html
-flashback,chemin=4,os.getcwd().replace('\\','/').split('OneDrive')[0]+'/OneDrive/Documents/private_life/Investissements/Donnees/BRVM/'
-threshold,threshold_alt=.1,.01
+flashback,threshold,threshold_alt=4,.1,.01
 tem=['ggplot2','gridon','none','plotly','plotly_dark','plotly_white','presentation','seaborn','simple_white','xgridoff','ygridoff']
 temp,c=tem[rd.randint(0,len(tem)-1)],['rgb'+str(tuple(rd.randint(0,225) for i in range(3))) for i in range(7)]
 def rn(x):
@@ -9,7 +8,7 @@ def rn(x):
         return int(x)
     except:
         return 0
-data=pd.read_excel(chemin+'Cours_titres.xlsx')
+data=pd.read_excel('Cours_titres.xlsx')
 for i in data.columns:
     if i=='Date/Société':
         data.loc[:,i]=data[i].apply(lambda x: pd.to_datetime(x,format="%Y-%m-%d"))
