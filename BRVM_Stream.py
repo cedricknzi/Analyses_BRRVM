@@ -9,7 +9,7 @@ def rn(x):
         return int(x)
     except:
         return 0
-data=pd.read_excel(chemin+'Cours_titres.xlsx')
+data=pd.read_excel('Cours_titres.xlsx')
 for i in data.columns:
     if i=='Date/Société':
         data.loc[:,i]=data[i].apply(lambda x: pd.to_datetime(x,format="%Y-%m-%d"))
