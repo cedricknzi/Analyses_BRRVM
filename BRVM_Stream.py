@@ -391,9 +391,6 @@ def stabilite(donn,delai_vol=50):
     st1['Rang']=[i+1 for i in range(len(st1))]
     st1['Constat']=st1.Rang.apply(lambda x: 'Stable' if x<len(st1)/2 else 'Instable')
     return st1.loc[st1.Constat=='Stable'].Titre.unique(),cro
-pr3=pd.read_parquet('C:/Users/USER/OneDrive/Documents/private_life/Investissements/Donnees/BRVM/Modeles/3_predicts.parquet')
-pr3['Date']=pr3.Date.apply(lambda x: pd.to_datetime(x))
-pr3['Liste']=pr3.Liste.apply(lambda x: tuple(x))
 def commentaires(donn,titre,modele,arriere=flashback,affiche2='Non'):
     com=''
     ct,mt,lt,delai=len(donn)//3,2*len(donn)//3,3*len(donn)//3,len(donn)//5
@@ -437,22 +434,6 @@ def commentaires(donn,titre,modele,arriere=flashback,affiche2='Non'):
             com=ajout(com,'Achat Favorable')
         elif 'baiss' in com.lower() and 'Instable' in com:
             com=ajout(com,'Vente Favorable')
-    if modele=='Modele2':
-        try:
-            if titre in pr3.loc[pr3.Date==donn['Date/Société'].iloc[-1]].Liste.iloc[0]:
-                com=ajout(com,'Achat Favorable')
-            elif 'baiss' in com.lower() and 'Instable' in com:
-                com=ajout(com,'Vente Favorable')
-        except:
-            pass
-    if modele=='Modele3':
-        try: #'Croissance' in com and 'Pente' in com and 
-            if ('Tendance haussière' in com or 'Stable' in com) and titre in pr3.loc[pr3.Date==donn['Date/Société'].iloc[-1]].Liste.iloc[0]:
-                com=ajout(com,'Achat Favorable')
-            elif 'baiss' in com.lower() and 'Instable' in com:
-                com=ajout(com,'Vente Favorable')
-        except:
-            pass
     if affiche2=='Oui':
         print({'Dernier prix':dernier_prix,'Max hitorique':prix_max,'Min historique':prix_min,'Max local':max_local,'Min local':min_local,
                'Court terme':court_terme,'Moyen terme':moyen_terme,'Long terme':long_terme,'Borne inf':1-threshold_alt,'Borne max':1+threshold_alt,
