@@ -1,6 +1,7 @@
 import streamlit as st,pandas as pd,numpy as np,os,random as rd,datetime as dt,plotly.express as px
 from streamlit.components.v1 import html
-flashback,threshold,threshold_alt=4,.1,.01
+flashback,chemin=4,os.getcwd().replace('\\','/').split('OneDrive')[0]+'/OneDrive/Documents/private_life/Investissements/Donnees/BRVM/'
+threshold,threshold_alt=.1,.01
 tem=['ggplot2','gridon','none','plotly','plotly_dark','plotly_white','presentation','seaborn','simple_white','xgridoff','ygridoff']
 temp,c=tem[rd.randint(0,len(tem)-1)],['rgb'+str(tuple(rd.randint(0,225) for i in range(3))) for i in range(7)]
 def rn(x):
@@ -8,7 +9,7 @@ def rn(x):
         return int(x)
     except:
         return 0
-data=pd.read_excel('Cours_titres.xlsx')
+data=pd.read_excel(chemin+'Cours_titres.xlsx')
 for i in data.columns:
     if i=='Date/Société':
         data.loc[:,i]=data[i].apply(lambda x: pd.to_datetime(x,format="%Y-%m-%d"))
@@ -80,7 +81,7 @@ def best_predict(x):
         return 'Marche',x.Marche
     else:
         return 'Moyenne',x.Moyenne
-def best_next(data,top):
+def best_next(data):
     if len(data)>hdp:
         ca=pd.DataFrame([[i] for i in data.columns[1:]],columns=['Titre'])
         ca.loc[:,'Last']=ca.Titre.apply(lambda x: data.head(-hdp)[x].iloc[-1])
@@ -96,9 +97,10 @@ def best_next(data,top):
         ca.loc[:,'Next']=ca.apply(lambda x: ap(x.Titre,x.Best),axis=1)
         ca.loc[:,'Variation']=ca.apply(lambda x: round(100*(-1+x.Next/x.Value)) if x.Value!=0 else 0,axis=1)
         ca['Last'],ca['Value']=ca.Last.apply(lambda x: int(x)),ca.Value.apply(lambda x: int(x))
-        ca=ca.loc[ca.Variation>0].sort_values(by='Variation',ascending=False).head(top)
-        ca=ca.rename(columns={'Last':'Valeur Année Précédente','Value':'Valeur Actuelle','Next':'Valeur Estimée Année Prochaine','Variation':'Progression'})[
-            ['Titre','Valeur Année Précédente','Valeur Actuelle','Valeur Estimée Année Prochaine','Progression']]
+        ca=ca.sort_values(by='Variation',ascending=False)
+        ca=ca.rename(
+            columns={'Last':'Valeur Année Précédente','Value':'Valeur Actuelle','Next':'Next Year','Variation':'Progression Estimée'})[
+                ['Titre','Valeur Année Précédente','Valeur Actuelle','Next Year','Progression Estimée']]
         return ca
     else:
         ca=pd.DataFrame([[i] for i in data.columns[1:]],columns=['Titre'])
@@ -115,13 +117,14 @@ def best_next(data,top):
         ca.loc[:,'Next']=ca.apply(lambda x: ap(x.Titre,x.Best),axis=1)
         ca.loc[:,'Variation']=ca.apply(lambda x: round(100*(-1+x.Next/x.Value)) if x.Value!=0 else 0,axis=1)
         ca['Last'],ca['Value']=ca.Last.apply(lambda x: int(x)),ca.Value.apply(lambda x: int(x))
-        ca=ca.loc[ca.Variation>0].sort_values(by='Variation',ascending=False).head(top)
-        ca=ca.rename(columns={'Last':'Valeur Année Précédente','Value':'Valeur Actuelle','Next':'Valeur Estimée Année Prochaine','Variation':'Progression'})[
-            ['Titre','Valeur Année Précédente','Valeur Actuelle','Valeur Estimée Année Prochaine','Progression']]
+        ca=ca.sort_values(by='Variation',ascending=False)
+        ca=ca.rename(
+            columns={'Last':'Valeur Année Précédente','Value':'Valeur Actuelle','Next':'Next Year','Variation':'Progression Estimée'})[
+                ['Titre','Valeur Année Précédente','Valeur Actuelle','Next Year','Progression Estimée']]
         return ca
 def best_yearly(data,top):
     if len(data)>260:
-        data=data.tail(rd.randint(250,260))
+        data=data.tail(rd.randint(259,261))
         co=data.loc[data['Date/Société']==data.iloc[0,0]].T.tail(data.shape[1]-1).reset_index()
         co.rename(columns={'index':'Titre',co.columns[1]:'An_Dernier'},inplace=True)
     else:
@@ -132,13 +135,13 @@ def best_yearly(data,top):
     ca=ca.merge(co,on='Titre',how='left')
     ca['Cette_Annee'],ca['An_Dernier']=ca.Cette_Annee.apply(lambda x: int(x)),ca.An_Dernier.apply(lambda x: int(x))
     ca.loc[:,'Variation']=ca.apply(lambda x: bonn_div(x,'Cette_Annee','An_Dernier'),axis=1)
-    ca=ca.loc[ca.Variation>0].sort_values(by='Variation',ascending=False).head(top)
-    ca=ca.rename(columns={'Cette_Annee':'Valeur Actuelle','An_Dernier':'Valeur Année Précédente','Variation':'Progression'})
-    ca=ca[['Titre','Valeur Année Précédente','Valeur Actuelle','Progression']]
+    ca=ca.sort_values(by='Variation',ascending=False).head(top)
+    ca=ca.rename(columns={'Cette_Annee':'Valeur Actuelle','An_Dernier':'An Dernier','Variation':'Progression'})
+    ca=ca[['Titre','An Dernier','Valeur Actuelle','Progression']]
     return ca
 def best_monthly(data,top):
     if len(data)>25:
-        data=data.tail(rd.randint(21,23))
+        data=data.tail(rd.randint(21,24))
         co=data.loc[data['Date/Société']==data.iloc[0,0]].T.tail(data.shape[1]-1).reset_index()
         co.rename(columns={'index':'Titre',co.columns[1]:'Mois_Dernier'},inplace=True)
     else:
@@ -149,13 +152,13 @@ def best_monthly(data,top):
     ca=ca.merge(co,on='Titre',how='left')
     ca['Today'],ca['Mois_Dernier']=ca.Today.apply(lambda x: int(x)),ca.Mois_Dernier.apply(lambda x: int(x))
     ca.loc[:,'Variation']=ca.apply(lambda x: bonn_div(x,'Today','Mois_Dernier'),axis=1)
-    ca=ca.loc[ca.Variation>0].sort_values(by='Variation',ascending=False).head(top)
-    ca=ca.rename(columns={'Today':'Valeur Actuelle','Mois_Dernier':'Valeur Mois Précédent','Variation':'Progression'})
-    ca=ca[['Titre','Valeur Mois Précédent','Valeur Actuelle','Progression']]
+    ca=ca.sort_values(by='Variation',ascending=False).head(top)
+    ca=ca.rename(columns={'Today':'Valeur Actuelle','Mois_Dernier':'Last Month','Variation':'Progression'})
+    ca=ca[['Titre','Last Month','Valeur Actuelle','Progression']]
     return ca
 def best_hebdo(data,top):
     if len(data)>7:
-        data=data.tail(5)
+        data=data.tail(6)
         co=data.loc[data['Date/Société']==data.iloc[0,0]].T.tail(data.shape[1]-1).reset_index()
         co.rename(columns={'index':'Titre',co.columns[1]:'Semaine_Derniere'},inplace=True)
     else:
@@ -166,11 +169,14 @@ def best_hebdo(data,top):
     ca=ca.merge(co,on='Titre',how='left')
     ca['Today'],ca['Semaine_Derniere']=ca.Today.apply(lambda x: int(x)),ca.Semaine_Derniere.apply(lambda x: int(x))
     ca.loc[:,'Variation']=ca.apply(lambda x: bonn_div(x,'Today','Semaine_Derniere'),axis=1)
-    ca=ca.loc[ca.Variation>0].sort_values(by='Variation',ascending=False).head(top)
-    ca=ca.rename(columns={'Today':'Valeur Actuelle','Semaine_Derniere':'Valeur Semaine Précédente','Variation':'Progression'})
-    ca=ca[['Titre','Valeur Semaine Précédente','Valeur Actuelle','Progression']]
+    ca=ca.sort_values(by='Variation',ascending=False).head(top)
+    ca=ca.rename(columns={'Today':'Valeur Actuelle','Semaine_Derniere':'Last Week','Variation':'Progression'})
+    ca=ca[['Titre','Last Week','Valeur Actuelle','Progression']]
     return ca
-predi,annee,mois,week=best_next(data,10),best_yearly(data,10),best_monthly(data,10),best_hebdo(data,10)
+predi,annee,mois,week=best_next(data),best_yearly(data,10),best_monthly(data,10),best_hebdo(data,10)
+annee=annee.merge(predi[['Titre','Next Year','Progression Estimée']],on='Titre',how='left')
+mois=mois.merge(predi[['Titre','Next Year','Progression Estimée']],on='Titre',how='left')
+week=week.merge(predi[['Titre','Next Year','Progression Estimée']],on='Titre',how='left')
 def secure_dataframe(df):
     html_code = f"""
     <div style="
@@ -191,52 +197,61 @@ def secure_dataframe(df):
     """
     return html(html_code)
 st.title('Analyses des données de la BRVM')
-choix=st.radio('Quelles données voulez vous afficher?',
-               options=['📅 Meilleur hebdo','📅 Meilleur mensuel','📅 Meilleur annuel','🏆 Meilleures prédictions'],horizontal=True)
-if choix=='🏆 Meilleures prédictions':
+choix=st.radio('Quelles données voulez vous afficher?',options=['📅 Meilleur hebdo','📅 Meilleur mensuel','📅 Meilleur annuel'],horizontal=True)
+degr=['Accent','Accent_r','Blues','Blues_r','BrBG','BrBG_r','BuGn','BuGn_r','BuPu','BuPu_r','CMRmap','CMRmap_r','Dark2','Dark2_r','GnBu','GnBu_r','Grays','Greens',
+      'Greens_r','Greys','Greys_r','OrRd','OrRd_r','Oranges','Oranges_r','PRGn','PRGn_r','Paired','Paired_r','Pastel1','Pastel1_r','Pastel2','Pastel2_r','PiYG',
+      'PiYG_r','PuBu','PuBuGn','PuBuGn_r','PuBu_r','PuOr','PuOr_r','PuRd','PuRd_r','Purples','Purples_r','RdBu','RdBu_r','RdGy','RdGy_r','RdPu','RdPu_r','RdYlBu',
+      'RdYlBu_r','RdYlGn','RdYlGn_r','Reds','Reds_r','Set1','Set1_r','Set2','Set2_r','Set3','Set3_r','Spectral','Spectral_r','Wistia','Wistia_r','YlGn','YlGnBu',
+      'YlGnBu_r','YlGn_r','YlOrBr','YlOrBr_r','YlOrRd','YlOrRd_r','afmhot','afmhot_r','autumn','autumn_r','binary','binary_r','bone','bone_r','brg','brg_r','bwr',
+      'bwr_r','cividis','cividis_r','cool','cool_r','coolwarm','coolwarm_r','copper','copper_r','cubehelix','cubehelix_r','flag','flag_r','gist_earth',
+      'gist_earth_r','gist_gray','gist_gray_r','gist_grey','gist_heat','gist_heat_r','gist_ncar','gist_ncar_r','gist_rainbow','gist_rainbow_r','gist_stern',
+      'gist_stern_r','gist_yarg','gist_yarg_r','gist_yerg','gnuplot','gnuplot2','gnuplot2_r','gnuplot_r','gray','gray_r','grey','hot','hot_r','hsv','hsv_r',
+      'inferno','inferno_r','jet','jet_r','magma','magma_r','nipy_spectral','nipy_spectral_r','ocean','ocean_r','pink','pink_r','plasma','plasma_r','prism',
+      'prism_r','rainbow','rainbow_r','seismic','seismic_r','spring','spring_r','summer','summer_r','tab10','tab10_r','tab20','tab20_r','tab20b','tab20b_r',
+      'tab20c','tab20c_r','terrain','terrain_r','turbo','turbo_r','twilight','twilight_r','twilight_shifted','twilight_shifted_r','viridis','viridis_r','winter',
+      'winter_r']
+if choix=='📅 Meilleur annuel':
     if rd.randint(0,1)==1:
-        st.subheader('Top 10 des meilleures prédictions')
-        st.dataframe(predi.style.set_properties(**{'background-color': 'black','color': 'white','border': '1px solid grey'}).format(
-            {'Progression': '{:.1f}%'},precision=1).set_table_styles([{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
-                cmap=rd.choice(['Blues','Greens','Reds'])).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
-    else:
-        st.subheader('Top 5 des meilleures prédictions')
-        secure_dataframe(predi.style.set_properties(**{'background-color': 'black','color': 'white','border': '1px solid grey'}).format(
-            {'Progression': '{:.1f}%'},precision=1).set_table_styles([{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
-                cmap=rd.choice(['Blues','Greens','Reds'])).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
-elif choix=='📅 Meilleur annuel':
+        annee=annee[annee.columns[:-2]]
+    st.subheader('Top annuel')
     if rd.randint(0,1)==1:
-        st.subheader('Top 10 annuel')
         st.dataframe(annee.style.set_properties(**{'background-color': 'black','color': 'white','border': '1px solid grey'}).format(
-            {'Progression': '{:.1f}%'},precision=1).set_table_styles([{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
-                cmap=rd.choice(['Blues','Greens','Reds'])).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
+            {'Progression': '{:.1f}%','Progression Estimée': '{:.1f}%'},precision=1).set_table_styles(
+                [{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
+                cmap=rd.choice(degr)).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
     else:
-        st.subheader('Top 5 annuel')
         secure_dataframe(annee.style.set_properties(**{'background-color': 'black','color': 'white','border': '1px solid grey'}).format(
-            {'Progression': '{:.1f}%'},precision=1).set_table_styles([{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
-                cmap=rd.choice(['Blues','Greens','Reds'])).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
+            {'Progression': '{:.1f}%','Progression Estimée': '{:.1f}%'},precision=1).set_table_styles(
+                [{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
+                cmap=rd.choice(degr)).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
 elif choix=='📅 Meilleur mensuel':
     if rd.randint(0,1)==1:
-        st.subheader('Top 10 mensuel')
+        mois=mois[mois.columns[:-2]]
+    st.subheader('Top mensuel')
+    if rd.randint(0,1)==1:
         st.dataframe(mois.style.set_properties(**{'background-color': 'black','color': 'white','border': '1px solid grey'}).format(
-            {'Progression': '{:.1f}%'},precision=1).set_table_styles([{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
-                cmap=rd.choice(['Blues','Greens','Reds'])).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
+            {'Progression': '{:.1f}%','Progression Estimée': '{:.1f}%'},precision=1).set_table_styles(
+                [{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
+                cmap=rd.choice(degr)).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
     else:
-        st.subheader('Top 5 mensuel')
         secure_dataframe(mois.style.set_properties(**{'background-color': 'black','color': 'white','border': '1px solid grey'}).format(
-            {'Progression': '{:.1f}%'},precision=1).set_table_styles([{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
-                cmap=rd.choice(['Blues','Greens','Reds'])).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
+            {'Progression': '{:.1f}%','Progression Estimée': '{:.1f}%'},precision=1).set_table_styles(
+                [{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
+                cmap=rd.choice(degr)).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
 elif choix=='📅 Meilleur hebdo':
     if rd.randint(0,1)==1:
-        st.subheader('Top 10 hebdo')
+        week=week[week.columns[:-2]]
+    st.subheader('Top hebdomadaire')
+    if rd.randint(0,1)==1:
         st.dataframe(week.style.set_properties(**{'background-color': 'black','color': 'white','border': '1px solid grey'}).format(
-            {'Progression': '{:.1f}%'},precision=1).set_table_styles([{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
-                cmap=rd.choice(['Blues','Greens','Reds'])).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
+            {'Progression': '{:.1f}%','Progression Estimée': '{:.1f}%'},precision=1).set_table_styles(
+                [{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
+                cmap=rd.choice(degr)).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
     else:
-        st.subheader('Top 5 hebdo')
         secure_dataframe(week.style.set_properties(**{'background-color': 'black','color': 'white','border': '1px solid grey'}).format(
-            {'Progression': '{:.1f}%'},precision=1).set_table_styles([{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
-                cmap=rd.choice(['Blues','Greens','Reds'])).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
+            {'Progression': '{:.1f}%','Progression Estimée': '{:.1f}%'},precision=1).set_table_styles(
+                [{'selector': 'th','props': [('font-size', '14px')]}]).background_gradient(
+                cmap=rd.choice(degr)).set_properties(subset=pd.IndexSlice[::2, :], **{'border-bottom': '2px solid white'}))
 ndj=rd.randint(10,len(data))
 ddr=data.tail(ndj)['Date/Société'].iloc[0]
 #rep=pd.DataFrame([[ddr,bst_ptf(ndj)[0],bst_ptf(ndj)[1]]],columns=['Historique','Actif','Rendement'])
@@ -468,8 +483,11 @@ def graphique(data,titre,modele,perf=perf):
                         line_shape=rd.choice(['hv','hvh','linear','vh','vhv']))
         fig.update_traces(line_width=2.5,hovertemplate='%{y:f} FCFA<br>%{x|%d %b %Y}')
         return fig
-d1=rd.choice(data.loc[data['Date/Société']>dt.datetime(2022,12,1)]['Date/Société'].unique())
-d2=rd.choice(data.loc[data['Date/Société']>dt.datetime(2022,12,1)]['Date/Société'].unique())
+if rd.randint(0,1)==0:
+    d1=rd.choice(data.loc[data['Date/Société']>dt.datetime(2022,12,1)]['Date/Société'].unique())
+    d2=rd.choice(data.loc[data['Date/Société']>dt.datetime(2022,12,1)]['Date/Société'].unique())
+else:
+    d1,d2=rd.choice(data['Date/Société'].unique()),rd.choice(data['Date/Société'].unique())
 def secure_plotly_figure(fig):
     # Désactive le modebar (contient le bouton de téléchargement)
     fig.update_layout(modebar_remove=['toImage', 'select2d', 'lasso2d'],dragmode=False)
